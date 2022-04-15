@@ -23,6 +23,8 @@ contract CollectiversePlanetFactory is ERC1155Upgradeable, OperatorRole {
         name_ = _planetName;
         symbol_ = _ticker;
 
+        landNftMax_ = x;
+
         __OperatorRole_init();
 
         __ERC1155_init(_metaDataUri);

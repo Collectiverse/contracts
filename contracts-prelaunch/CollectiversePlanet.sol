@@ -9,8 +9,8 @@ import "./OperatorRole.sol";
 
 contract CollectiversePlanetFactory is ERC1155Upgradeable, OperatorRole {
 
-    string name_;
-    string symbol_;
+    string public name_;
+    string public symbol_;
 
     using CountersUpgradeable for CountersUpgradeable.Counter;
     CountersUpgradeable.Counter private _tokenIds;
@@ -18,16 +18,16 @@ contract CollectiversePlanetFactory is ERC1155Upgradeable, OperatorRole {
     event NewPlanetMinted(uint newItemId, address _owner);
     event TokenUriUpdated(uint tokenId, string uri);
 
-    function initialize(string memory _metaDataUri, string memory _planetName, string memory _ticker) public initializer {
+    function initialize(string memory _metaDataUri, string memory _planetName, string memory _ticker, uint256 _nftId, uint256 _fractionsId, uint256 _amount, address owner) public initializer {
 
         name_ = _planetName;
         symbol_ = _ticker;
 
-        landNftMax_ = x;
-
         __OperatorRole_init();
 
         __ERC1155_init(_metaDataUri);
+
+        
     }
 
     function authorizeAndMintMainArtwork(address _owner, uint256 _amount ) public onlyOperator {

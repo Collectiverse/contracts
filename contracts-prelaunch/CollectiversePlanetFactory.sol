@@ -3,41 +3,40 @@ pragma solidity ^0.8.0;
 
 import "./CollectiversePlanet.sol";
 import "./OperatorRole.sol";
-
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
-contract VaultFactory is Ownable, ERC1155Holder, OperatorRole {
+contract CollectiversePlanetFactory is OperatorRole {
     string public version = "2.0";
-    /// @notice the number of ERC721 vaults
-    uint256 public vaultCount;
 
-    /// @notice the mapping of vault number to vault contract
-    mapping(uint256 => address) public vaults;
+    mapping(uint256 => address) public planets;
+    uint256 public planetCount;
 
-    uint256 public _nftId = 1;
-    uint256 public _fractionsId = 2;
-
-    event Mint(
-        address vault,
-        uint256 vaultId
-    );
+    event Mint(address planet, uint256 planetId);
 
     /// @notice the function to mint a new vault
-    /// @param _amount the amount of tokens to
+    /// @param _name the name of the planet
+    /// @param _symbol the ticker of the planet
+    /// @param _amount the amount of fractions
     /// @return the ID of the vault
     function mint(
-        string memory _planetName,
-        string memory _ticker,
+        string memory _metaDataUri,
+        string memory _name,
+        string memory _symbol,
         uint256 _amount
     ) external onlyOperator returns (uint256) {
         //uint256 count = FERC1155(fnft).count() + 1;
-        address planet = address(
-            new CollectiversePlanet()
+
+        address planet = address(new CollectiversePlanet());
+        CollectiversePlanet(planet).transferOwnership(msg.sender);
+        CollectiversePlanet(planet).initialize(
+            _metaDataUri,
+            _name,
+            _symbol,
+            _amount,
+            msg.sender
         );
 
-        CollectiversePlanet(planet).initialize(_planetName, _ticker, _nftId, _fractionsId, _amount, msg.sender);
-
-        emit Mint(vault, vaultCount);
+        emit Mint(planet, planetCount);
         /* CollectiversePlanet(planet).safeTransferFrom(
             address(this),
             msg.sender,
@@ -46,10 +45,9 @@ contract VaultFactory is Ownable, ERC1155Holder, OperatorRole {
             bytes("0")
         ); */
 
-        vaults[vaultCount] = planet;
-        vaultCount++;
+        planets[planetCount] = planet;
+        planetCount++;
 
-        return vaultCount - 1;
+        return planetCount - 1;
     }
-
 }

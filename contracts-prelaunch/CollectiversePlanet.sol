@@ -6,31 +6,38 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "./OperatorRole.sol";
 
-
-contract CollectiversePlanetFactory is ERC1155Upgradeable, OperatorRole {
-
-    string public name_;
-    string public symbol_;
+contract CollectiversePlanet is ERC1155Upgradeable, OperatorRole {
+    string public name;
+    string public symbol;
 
     using CountersUpgradeable for CountersUpgradeable.Counter;
     CountersUpgradeable.Counter private _tokenIds;
 
-    event NewPlanetMinted(uint newItemId, address _owner);
-    event TokenUriUpdated(uint tokenId, string uri);
+    event NewPlanetMinted(uint256 newItemId, address _owner);
+    event UpdatedURI(string uri);
 
-    function initialize(string memory _metaDataUri, string memory _planetName, string memory _ticker, uint256 _nftId, uint256 _fractionsId, uint256 _amount, address owner) public initializer {
-
-        name_ = _planetName;
-        symbol_ = _ticker;
+    function initialize(
+        string memory _metaDataUri,
+        string memory _name,
+        string memory _symbol,
+        uint256 _amount,
+        address _owner
+    ) public initializer {
+        name = _name;
+        symbol = _symbol;
 
         __OperatorRole_init();
-
         __ERC1155_init(_metaDataUri);
 
-        
+        _mint(_owner, 0, 1, ""); // planet nft @0
+        _mint(_owner, 1, _amount, ""); // fractions @1
     }
 
-    function authorizeAndMintMainArtwork(address _owner, uint256 _amount ) public onlyOperator {
+    // is this necessary?
+    function authorizeAndMintMainArtwork(address _owner, uint256 _amount)
+        public
+        onlyOperator
+    {
         _tokenIds.increment();
 
         uint256 newItemId = _tokenIds.current();
@@ -38,10 +45,9 @@ contract CollectiversePlanetFactory is ERC1155Upgradeable, OperatorRole {
         emit NewPlanetMinted(newItemId, _owner);
     }
 
-    function updateTokenUri(uint _tokenId, string memory uri) public onlyOperator {
-        _setTokenURI(_tokenId, uri);
+    function updateURI(string memory newURI) public onlyOperator {
+        _setURI(newURI);
 
-        emit TokenUriUpdated(_tokenId, uri);
+        emit UpdatedURI(newURI);
     }
-
 }

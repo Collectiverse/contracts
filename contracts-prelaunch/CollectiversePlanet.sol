@@ -9,6 +9,8 @@ import "./OperatorRole.sol";
 contract CollectiversePlanet is ERC1155Upgradeable, OperatorRole {
     string public name;
     string public symbol;
+    string private baseURI;
+
 
     using CountersUpgradeable for CountersUpgradeable.Counter;
     CountersUpgradeable.Counter private _tokenIds;
@@ -29,13 +31,13 @@ contract CollectiversePlanet is ERC1155Upgradeable, OperatorRole {
         __OperatorRole_init();
         __ERC1155_init(_metaDataUri);
 
-        _mint(_owner, 0, 1, ""); // planet nft @0
+        _mintPlanet(_owner, 0, 1, ""); // planet nft @0
         _mint(_owner, 1, _amount, ""); // fractions @1
     }
 
     // is this necessary?
-    function authorizeAndMintMainArtwork(address _owner, uint256 _amount)
-        public
+    function _mintPlanet(address _owner, uint256 _id, uint256 _amount, string memory data)
+        internal
         onlyOperator
     {
         _tokenIds.increment();

@@ -9,7 +9,6 @@ contract CollectiversePlanetFactory is OperatorRole {
     string public version = "2.0";
 
     mapping(uint256 => address) public planets;
-    uint256 public planetCount;
 
     event Mint(address planet, uint256 planetId);
 
@@ -24,7 +23,7 @@ contract CollectiversePlanetFactory is OperatorRole {
         string memory _symbol,
         uint256 _amount
     ) external onlyOperator returns (uint256) {
-        //uint256 count = FERC1155(fnft).count() + 1;
+        uint256 planetCount = CollectiversePlanet(planet).count() + 1;
 
         address planet = address(new CollectiversePlanet());
         CollectiversePlanet(planet).transferOwnership(msg.sender);

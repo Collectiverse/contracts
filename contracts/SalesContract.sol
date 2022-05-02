@@ -19,6 +19,8 @@ contract SalesContract is Ownable {
     address public wallet;
     // vault information
     address public vaults;
+    // whitelist
+    mapping(address => bool) public whitelist;
 
     // auctioned erc1155
     mapping(address => uint256) public planetPrices;
@@ -46,6 +48,9 @@ contract SalesContract is Ownable {
             VaultInfo(vaults).hasVault(msg.sender),
             "You don't have a vault"
         );
+
+        // check if address is whitelisted
+        require(whitelist[msg.sender], "Address has not been whitelisted");
 
         uint256 totalPrice = planetPrices[_planet] * _amount;
         uint256 userBalance = IERC20(erc20).balanceOf(msg.sender);
@@ -78,5 +83,26 @@ contract SalesContract is Ownable {
             erc1155Id,
             _amount
         );
+    }
+
+    // whitelist addresses
+    function _whitelistAddress(address _address, bool status)
+        private
+        returns (bool)
+    {
+        require(_address != address(0x0), "Zero Address: Not Allowed");
+        whitelist[_address] = status;
+        return true;
+    }
+
+    function whitelistAddresses(address[] memory _addresses, bool status)
+        external
+        onlyOwner
+        returns (bool)
+    {
+        for (uint256 i = 0; i < _addresses.length; i++) {
+            require(_whitelistAddress(_addresses[i], status));
+        }
+        return true;
     }
 }

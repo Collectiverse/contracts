@@ -4,7 +4,17 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
-import "@openzeppelin/contracts/token/ERC1155/ERC1155Holder.sol";
+import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+
+interface ICollectiverseSettings {
+    function stakingForApyAddress() external view returns (address);
+    function stakingForTerraformAddress() external view returns (address);
+    function votingAddress() external view returns (address);
+    function adminAddress() external view returns (address);
+}
+
+
+
 contract MultiSigWallet is ERC1155Holder {
     event Deposit(address indexed sender, uint amount, uint balance);
     event SubmitTransaction(
@@ -20,12 +30,10 @@ contract MultiSigWallet is ERC1155Holder {
     event DepositERC1155(address indexed token, uint256 tokenId, uint256 amount, address indexed from);
     event DepositERC1155Bulk(address indexed token, uint256[] tokenId, uint256[] amount, address indexed from);
     event WithdrawERC1155(address indexed token, uint256 tokenId, uint256 amount, address indexed from);
-    event stakeForApyCreated(uint indexed txIndex);
-    event stakeForTerraformCreated(uint indexed txIndex);
-    event renounceOwnerCreated(uint indexed txIndex);
-    address public apyAddress;
-    address public terraformAddress;
-    address public votingAddress;
+    event StakeForApyCreated(uint indexed txIndex);
+    event StakeForTerraformCreated(uint indexed txIndex);
+    event RenounceOwnerCreated(uint indexed txIndex);
+    address public collectiverseSettingsAddress;
     address public owner;
     mapping(address => bool) public isOwner;
     uint public numConfirmationsRequired;
@@ -52,7 +60,8 @@ contract MultiSigWallet is ERC1155Holder {
 
     modifier onlyAdmin() {
         //fetch admin from the settings contract
-        address admin = 0x0000dead;
+
+        address admin = getAdminAddress();
         require(msg.sender == admin, "not admin");
         _;
     }
@@ -72,23 +81,11 @@ contract MultiSigWallet is ERC1155Holder {
         _;
     }
 
-    constructor(address _owner, uint[] memory _numConfirmationsRequired, address[] memory _stakingAddresses) {
-        require(_numConfirmationsRequired.length == 0, "Invalid amount of confirmation parameters"); // HAVE TO DECIDE THIS AFTER
-        for (uint i = 0; i < _numConfirmationsRequired.length; i++) {
-            require(
-                        _numConfirmationsRequired[i] > 0 &&
-                            _numConfirmationsRequired[i] <= (1 + _numConfirmationsRequired.length),
-                        "invalid number of required confirmations"
-                    );
-        }
-        
-        require(_stakingAddresses.length == 3, "Staking addresses and voting address required");
-        apyAddress = _stakingAddresses[0];
-        terraformAddress = _stakingAddresses[1];
-        votingAddress = _stakingAddresses[2];
+    constructor(address _owner, address _collectiverseSettings) {
         owner = _owner;
+        isOwner[_owner] = true;
         // Have to add all the different functions here. will give error untill we know all the possible functions
-        numConfirmationsRequired = _numConfirmationsRequired;
+        collectiverseSettingsAddress = _collectiverseSettings;
     }
 
     receive() external payable {
@@ -217,41 +214,57 @@ contract MultiSigWallet is ERC1155Holder {
         address _token,
         address _to,
         uint256 _amount
-    ) external onlyAdmin {
+    ) external onlyOwner {
         IERC20(_token).transfer(_to, _amount);
     }
 
+    function getstakeForApyAddress() private view  returns (address)  {
+        return ICollectiverseSettings(collectiverseSettingsAddress).stakingForApyAddress();
+    }
+
+    function getstakeForTerraformAddress() private view returns (address)  {
+        return ICollectiverseSettings(collectiverseSettingsAddress).stakingForTerraformAddress();
+    }
+    
+    function getVotingAddress() private view returns (address)  {
+        return ICollectiverseSettings(collectiverseSettingsAddress).votingAddress();
+    }
+    function getAdminAddress() private view returns (address)  {
+        return ICollectiverseSettings(collectiverseSettingsAddress).adminAddress();
+    }
     function stakeForTerraform() public onlyOwner {
         //Populate data bellow with info from the terraform contract
         uint txIndex = transactions.length;
+        address terraformAddress = getstakeForTerraformAddress();
         transactions.push(
             Transaction({
                 typeTransaction: true,
                 to: terraformAddress,
-                value: "_value",
-                data: "_data",
+                value: 0, // temporary placeholders...
+                data: "_data",// temporary placeholders...
                 executed: false,
                 numConfirmations: 0
             })
         );
-        emit SubmitTransaction(msg.sender, txIndex, terraformAddress, "_value", "_data");
-        emit stakeForTerraformCreated(txIndex);
+        emit SubmitTransaction(msg.sender, txIndex, terraformAddress, 0, "_data");// temporary placeholders...
+        emit StakeForTerraformCreated(txIndex);
     }
     function stakeForApy() public onlyOwner {
         //Populate data bellow with info from the APY contract
+        address apyAddress = getstakeForApyAddress();
         uint txIndex = transactions.length;
         transactions.push(
             Transaction({
                 typeTransaction: true,
                 to: apyAddress,
-                value: "_value",
-                data: "_data",
+                value: 0,// temporary placeholders...
+                data: "_data",// temporary placeholders...
                 executed: false,
                 numConfirmations: 0
             })
         );
-        emit SubmitTransaction(msg.sender, txIndex, apyAddress, "_value", "_data");
-        emit stakeForApyCreated(txIndex);
+        emit SubmitTransaction(msg.sender, txIndex, apyAddress, 0, "_data");// temporary placeholders...
+        emit StakeForApyCreated(txIndex);
     }
     function renounceOwner(address _newOwner) public onlyOwner {
         uint txIndex = transactions.length;
@@ -265,13 +278,13 @@ contract MultiSigWallet is ERC1155Holder {
             numConfirmations: 0
         })
     );
-    emit SubmitTransaction(msg.sender, txIndex, apyAddress, 0, "0x");
-    emit renounceOwnerCreated(txIndex);
+    emit SubmitTransaction(msg.sender, txIndex, 0x0000000000000000000000000000000000000000, 0, "_data");
+    emit RenounceOwnerCreated(txIndex);
     
     }
 
 
-    function withdrawERC1155(address _token, uint256 _tokenId, uint256 _amount) external onlyAdmin {
+    function withdrawERC1155(address _token, uint256 _tokenId, uint256 _amount) external onlyOwner {
         IERC1155(_token).safeTransferFrom(address(this), msg.sender, _tokenId, _amount, "0");
         emit WithdrawERC1155(_token, _tokenId, _amount, msg.sender);
     }

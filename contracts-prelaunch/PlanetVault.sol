@@ -31,7 +31,7 @@ interface ISettings {
     function feeReceiver() external view returns (address);
 }
 
-interface IFERC1155 is IERC1155 {
+interface ICollectiversePlanet is IERC1155 {
     function burn(
         address,
         uint256,
@@ -41,9 +41,9 @@ interface IFERC1155 is IERC1155 {
     function totalSupply(uint256) external view returns (uint256);
 }
 
-contract Vault is ERC721Holder, ERC1155Holder {
+contract PlanetVault is ERC721Holder, ERC1155Holder {
     using EnumerableSet for EnumerableSet.UintSet;
-    string public version = "2.0";
+    string public version = "1.0";
 
     /// @notice weth address
     address public constant weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -69,6 +69,8 @@ contract Vault is ERC721Holder, ERC1155Holder {
     }
     State public auctionState;
 
+    
+
     /// -----------------------------------
     /// -------- VAULT INFORMATION --------
     /// -----------------------------------
@@ -77,10 +79,9 @@ contract Vault is ERC721Holder, ERC1155Holder {
     /// @notice the governance contract which gets paid in ETH
     address public immutable settings;
     address public immutable curator;
-    address public immutable fractions;
-    uint256 public immutable fractionsID;
-    address public immutable underlying;
-    uint256 public immutable underlyingID;
+    address public immutable planet;
+    uint256 public constant FRACTIONS_ID = 0;
+    uint256 public constant PLANET_ID = 1;
 
     // set of prices with over 1% voting for it
     EnumerableSet.UintSet prices;
@@ -114,26 +115,16 @@ contract Vault is ERC721Holder, ERC1155Holder {
     );
 
     constructor(
-        address _fractions,
-        uint256 _fractionsID,
-        address _underlying,
-        uint256 _underlyingID,
+        address _planet,
         address _curator
     ) {
         settings = msg.sender;
-        fractions = _fractions;
-        fractionsID = _fractionsID;
-        underlying = _underlying;
-        underlyingID = _underlyingID;
+        planet = _planet;
         curator = _curator;
     }
 
     function token() external view returns (address) {
-        return underlying;
-    }
-
-    function id() external view returns (uint256) {
-        return underlyingID;
+        return planet;
     }
 
     function isLivePrice(uint256 _price) external view returns (bool) {
@@ -141,9 +132,9 @@ contract Vault is ERC721Holder, ERC1155Holder {
     }
 
     function updateUserPrice(uint256 _new) external {
-        uint256 balance = IFERC1155(fractions).balanceOf(
+        uint256 balance = ICollectiversePlanet(planet).balanceOf(
             msg.sender,
-            fractionsID
+            FRACTIONS_ID
         );
 
         _addToPrice(balance, _new);
@@ -159,7 +150,7 @@ contract Vault is ERC721Holder, ERC1155Holder {
         address _to,
         uint256 _amount
     ) external {
-        require(msg.sender == fractions, "not allowed");
+        require(msg.sender == planet, "not allowed");
 
         // we are burning
         if (_to == address(0)) {
@@ -179,7 +170,7 @@ contract Vault is ERC721Holder, ERC1155Holder {
         priceToCount[_price] += _amount;
         if (
             priceToCount[_price] * 100 >=
-            IFERC1155(fractions).totalSupply(fractionsID) &&
+            ICollectiversePlanet(planet).totalSupply(FRACTIONS_ID) &&
             !prices.contains(_price)
         ) {
             prices.add(_price);
@@ -192,7 +183,7 @@ contract Vault is ERC721Holder, ERC1155Holder {
         priceToCount[_price] -= _amount;
         if (
             priceToCount[_price] * 100 <
-            IFERC1155(fractions).totalSupply(fractionsID) &&
+            ICollectiversePlanet(planet).totalSupply(FRACTIONS_ID) &&
             prices.contains(_price)
         ) {
             prices.remove(_price);
@@ -258,7 +249,7 @@ contract Vault is ERC721Holder, ERC1155Holder {
         (uint256 voting, uint256 reserve) = reservePrice();
         require(msg.value >= reserve, "start:too low bid");
         require(
-            voting * 2 >= IFERC1155(fractions).totalSupply(fractionsID),
+            voting * 2 >= ICollectiversePlanet(planet).totalSupply(FRACTIONS_ID),
             "start:not enough voters"
         );
 
@@ -289,7 +280,7 @@ contract Vault is ERC721Holder, ERC1155Holder {
         require(auctionState == State.live, "end:vault has already closed");
         require(block.timestamp >= auctionEnd, "end:auction live");
 
-        IERC721(underlying).transferFrom(address(this), winning, underlyingID);
+        ICollectiversePlanet(planet).safeTransferFrom(address(this), winning, PLANET_ID, 1, "0x0");
         auctionState = State.ended;
 
         if (ISettings(settings).feeReceiver() != address(0)) {
@@ -303,15 +294,17 @@ contract Vault is ERC721Holder, ERC1155Holder {
     function redeem() external {
         require(auctionState == State.inactive, "redeem:no redeeming");
 
-        IFERC1155(fractions).burn(
+        ICollectiversePlanet(planet).burn(
             msg.sender,
-            fractionsID,
-            IFERC1155(fractions).totalSupply(fractionsID)
+            FRACTIONS_ID,
+            ICollectiversePlanet(planet).totalSupply(FRACTIONS_ID)
         );
-        IERC721(underlying).transferFrom(
+        ICollectiversePlanet(planet).safeTransferFrom(
             address(this),
             msg.sender,
-            underlyingID
+            PLANET_ID,
+            1,
+            "0x0"
         );
 
         auctionState = State.redeemed;
@@ -322,12 +315,12 @@ contract Vault is ERC721Holder, ERC1155Holder {
     /// @notice an external function to burn ERC20 tokens to receive ETH from ERC721 token purchase
     function cash() external {
         require(auctionState == State.ended, "cash:vault not closed yet");
-        uint256 bal = IFERC1155(fractions).balanceOf(msg.sender, fractionsID);
+        uint256 bal = ICollectiversePlanet(planet).balanceOf(msg.sender, FRACTIONS_ID);
         require(bal > 0, "cash:no tokens to cash out");
         uint256 share = (bal * address(this).balance) /
-            IFERC1155(fractions).totalSupply(fractionsID);
+            ICollectiversePlanet(planet).totalSupply(FRACTIONS_ID);
 
-        IFERC1155(fractions).burn(msg.sender, fractionsID, bal);
+        ICollectiversePlanet(planet).burn(msg.sender, FRACTIONS_ID, bal);
         _sendETHOrWETH(msg.sender, share);
         emit Cash(msg.sender, share);
     }
@@ -347,17 +340,7 @@ contract Vault is ERC721Holder, ERC1155Holder {
         return success;
     }
 
-    function withdrawERC721(address _token, uint256 _tokenId) external {
-        require(
-            auctionState == State.ended || auctionState == State.redeemed,
-            "vault not closed yet"
-        );
-        require(msg.sender == winning, "withdraw:not allowed");
-        IERC721(_token).transferFrom(address(this), msg.sender, _tokenId);
-        emit WithdrawERC721(_token, _tokenId, msg.sender);
-    }
-
-    function withdrawERC1155(
+    function withdrawPlanet(
         address _token,
         uint256 _tokenId,
         uint256 _amount
@@ -367,7 +350,7 @@ contract Vault is ERC721Holder, ERC1155Holder {
             "vault not closed yet"
         );
         require(msg.sender == winning, "withdraw:not allowed");
-        IERC1155(_token).safeTransferFrom(
+        ICollectiversePlanet(_token).safeTransferFrom(
             address(this),
             msg.sender,
             _tokenId,

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "./CollectiversePlanet.sol";
+import "./PlanetVault.sol";
 import "./OperatorRole.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
@@ -9,7 +10,6 @@ contract CollectiversePlanetFactory is OperatorRole {
     string public version = "2.0";
 
     mapping(uint256 => address) public planets;
-    uint256 public planetCount;
 
     event Mint(address planet, uint256 planetId);
 
@@ -24,9 +24,32 @@ contract CollectiversePlanetFactory is OperatorRole {
         string memory _symbol,
         uint256 _amount
     ) external onlyOperator returns (uint256) {
-        //uint256 count = FERC1155(fnft).count() + 1;
+        /*
+        uint256 count = FERC1155(fnft).count() + 1;
+        address vault = address(new Vault(fnft, count, _token, _id, msg.sender));
+        uint256 fractionId = FERC1155(fnft).mint(vault, _amount);
+        require(count == fractionId, "mismatch");
+
+        emit Mint(_token, _id, fractionId, vault, vaultCount);
+        IERC721(_token).safeTransferFrom(msg.sender, vault, _id);
+        FERC1155(fnft).safeTransferFrom(
+        address(this),
+        msg.sender,
+        fractionId,
+        _amount,
+        bytes("0")
+        );
+
+        vaults[vaultCount] = vault;
+        vaultCount++;
+
+        return vaultCount - 1;
+        */
+        uint256 planetCount = CollectiversePlanet(planet).count() + 1;
 
         address planet = address(new CollectiversePlanet());
+        address planetVault = address(new PlanetVault(planet, count, _id, msg.sender));
+
         CollectiversePlanet(planet).transferOwnership(msg.sender);
         CollectiversePlanet(planet).initialize(
             _metaDataUri,

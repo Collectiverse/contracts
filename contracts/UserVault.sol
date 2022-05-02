@@ -3,7 +3,9 @@ pragma solidity ^0.8.10;
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-contract MultiSigWallet {
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155Holder.sol";
+contract MultiSigWallet is ERC1155Holder {
     event Deposit(address indexed sender, uint amount, uint balance);
     event SubmitTransaction(
         address indexed owner,
@@ -15,6 +17,9 @@ contract MultiSigWallet {
     event ConfirmTransaction(address indexed owner, uint indexed txIndex);
     event RevokeConfirmation(address indexed owner, uint indexed txIndex);
     event ExecuteTransaction(address indexed owner, uint indexed txIndex);
+    event DepositERC1155(address indexed token, uint256 tokenId, uint256 amount, address indexed from);
+    event DepositERC1155Bulk(address indexed token, uint256[] tokenId, uint256[] amount, address indexed from);
+    event WithdrawERC1155(address indexed token, uint256 tokenId, uint256 amount, address indexed from);
     event stakeForApyCreated(uint indexed txIndex);
     event stakeForTerraformCreated(uint indexed txIndex);
     event renounceOwnerCreated(uint indexed txIndex);
@@ -41,6 +46,14 @@ contract MultiSigWallet {
 
     modifier onlyOwner() {
         require(isOwner[msg.sender], "not owner");
+        _;
+    }
+
+
+    modifier onlyAdmin() {
+        //fetch admin from the settings contract
+        address admin = 0x0000dead;
+        require(msg.sender == admin, "not admin");
         _;
     }
 
@@ -81,7 +94,16 @@ contract MultiSigWallet {
     receive() external payable {
         emit Deposit(msg.sender, msg.value, address(this).balance);
     }
+    
+    function onERC1155Received(address, address from, uint256 id, uint256 amount, bytes memory) public virtual override returns (bytes4) {
+        emit DepositERC1155(msg.sender, id, amount, from);
+        return this.onERC1155Received.selector;
+    }
 
+    function onERC1155BatchReceived(address, address from, uint256[] memory ids, uint256[] memory amounts, bytes memory) public virtual override returns (bytes4) {
+        emit DepositERC1155Bulk(msg.sender, ids, amounts, from);
+        return this.onERC1155BatchReceived.selector;
+    }
     function submitTransaction(
         address _to,
         uint _value,
@@ -130,7 +152,7 @@ contract MultiSigWallet {
             "cannot execute tx"
         );
         if (transaction.typeTransaction == false) {
-            owner = transaction.to;
+            owner = transaction.to; // If typeTransaction is false it means it was sent from the renounceOwnership function.
         } 
         else {
             transaction.executed = true;
@@ -190,26 +212,12 @@ contract MultiSigWallet {
             transaction.numConfirmations
         );
     }
-    function changeStakeForApyAddress(address newImplementation)
-        public
-        virtual
-        onlyOwner
-    {
-        apyAddress = newImplementation;
-    }
-    function changeStakeForTerraformAddress(address newImplementation)
-        public
-        virtual
-        onlyOwner
-    {
-        terraformAddress = newImplementation;
-    }
-
+    
     function tranferERC20(
         address _token,
         address _to,
         uint256 _amount
-    ) external onlyOwner {
+    ) external onlyAdmin {
         IERC20(_token).transfer(_to, _amount);
     }
 
@@ -261,4 +269,11 @@ contract MultiSigWallet {
     emit renounceOwnerCreated(txIndex);
     
     }
+
+
+    function withdrawERC1155(address _token, uint256 _tokenId, uint256 _amount) external onlyAdmin {
+        IERC1155(_token).safeTransferFrom(address(this), msg.sender, _tokenId, _amount, "0");
+        emit WithdrawERC1155(_token, _tokenId, _amount, msg.sender);
+    }
+
 }

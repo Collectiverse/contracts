@@ -57,15 +57,14 @@ contract CollectiversePlanet is ERC1155Upgradeable, OperatorRole {
         emit NewPlanetMinted(0, _owner);
     }
 
-    function _mintFractions(address vault, uint256 amount)
+    function _mintFractions(address vault)
         external
         onlyOperator
         returns (uint256)
     {
         count++;
         idToVault[count] = vault;
-        _mint(msg.sender, count, amount, "0");
-        _totalSupply = amount;
+        _mint(msg.sender, count, _totalSupply, "0");
         return count;
     }
 

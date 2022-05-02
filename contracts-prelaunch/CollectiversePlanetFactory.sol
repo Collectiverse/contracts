@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 contract CollectiversePlanetFactory is OperatorRole {
     string public version = "2.0";
 
+    uint256 planetCount = 0;
     mapping(uint256 => address) public planets;
 
     event Mint(address planet, uint256 planetId);
@@ -45,32 +46,26 @@ contract CollectiversePlanetFactory is OperatorRole {
 
         return vaultCount - 1;
         */
-        uint256 planetCount = CollectiversePlanet(planet).count() + 1;
 
         address planet = address(new CollectiversePlanet());
-        address planetVault = address(new PlanetVault(planet, count, _id, msg.sender));
+        address planetVault = address(new PlanetVault(planet, msg.sender));
 
         CollectiversePlanet(planet).transferOwnership(msg.sender);
         CollectiversePlanet(planet).initialize(
             _metaDataUri,
             _name,
             _symbol,
-            _amount,
-            msg.sender
+            _amount
         );
 
+        CollectiversePlanet(planet)._mintPlanet(msg.sender, "");
+        CollectiversePlanet(planet)._mintFractions(planetVault);
+
         emit Mint(planet, planetCount);
-        /* CollectiversePlanet(planet).safeTransferFrom(
-            address(this),
-            msg.sender,
-            _fractionsId,
-            _amount,
-            bytes("0")
-        ); */
 
-        planets[planetCount] = planet;
         planetCount++;
+        planets[planetCount] = planet;
 
-        return planetCount - 1;
+        return planetCount;
     }
 }

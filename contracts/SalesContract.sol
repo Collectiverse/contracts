@@ -22,6 +22,13 @@ contract SalesContract is Ownable {
     // whitelist
     mapping(address => bool) public whitelist;
 
+    bool public useWhitelist;
+    bool public useMaxAmount;
+
+    // purchase limits
+    mapping(address => uint256) public amounts;
+    uint256 public maxAmount;
+
     // auctioned erc1155
     mapping(address => uint256) public planetPrices;
     uint256 public erc1155Id;
@@ -50,7 +57,9 @@ contract SalesContract is Ownable {
         );
 
         // check if address is whitelisted
-        require(whitelist[msg.sender], "Address has not been whitelisted");
+        if (useWhitelist) {
+            require(whitelist[msg.sender], "Address has not been whitelisted");
+        }
 
         uint256 totalPrice = planetPrices[_planet] * _amount;
         uint256 userBalance = IERC20(erc20).balanceOf(msg.sender);
@@ -59,6 +68,14 @@ contract SalesContract is Ownable {
         require(planetPrices[_planet] != 0, "Planet is unavailable");
         require(userBalance >= totalPrice, "Not enough funds");
         require(stock >= _amount, "Not enough fractions available");
+
+        // check if user purchases below their purchase limit - disabled on maxAmount = 0
+        if (useMaxAmount) {
+            require(
+                (amounts[msg.sender] + _amount) <= maxAmount,
+                "You hit the purchase limit"
+            );
+        }
 
         // transfers need further testing
         IERC20(erc20).safeTransfer(msg.sender, wallet, totalPrice);
@@ -70,8 +87,19 @@ contract SalesContract is Ownable {
         );
     }
 
+    // settings
     function setPrice(address _planet, uint256 _price) external onlyOwner {
         planetPrices[_planet] = _price;
+    }
+
+    function setSettings(
+        bool _useWhitelist,
+        bool _useMaxAmount,
+        uint256 _maxAmount
+    ) external onlyOwner {
+        useWhitelist = _useWhitelist;
+        useMaxAmount = _useMaxAmount;
+        maxAmount = _maxAmount;
     }
 
     // optional - to be used if planet doesn't sell or for migrations

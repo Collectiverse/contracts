@@ -4,15 +4,18 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
-import "./OperatorRole.sol";
+import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface VaultInfo {
-    mapping(uint256 => address) public vaults;
-    mapping(address => bool) public hasVault;
-    mapping(address => address) public getVaultId;
+    function vaults(uint256) external view returns (address);
+
+    function hasVault(address) external view returns (bool);
+
+    function getVaultId(address) external view returns (address);
 }
 
-contract SalesContract is Ownable {
+contract SalesContract is Ownable, ERC1155Holder {
     using SafeERC20 for IERC20;
 
     // wallet where the profits go to
@@ -20,7 +23,7 @@ contract SalesContract is Ownable {
     // vault information
     address public vaults;
     // whitelist
-    mapping(address => bool) public whitelist;
+    mapping(address => uint256) public whitelist;
 
     bool public useWhitelist;
     bool public useMaxAmount;
@@ -58,38 +61,52 @@ contract SalesContract is Ownable {
 
         // check if address is whitelisted
         if (useWhitelist) {
-            require(whitelist[msg.sender], "Address has not been whitelisted");
+            require(
+                whitelist[msg.sender] > 0,
+                "Address has not been whitelisted"
+            );
         }
 
         uint256 totalPrice = planetPrices[_planet] * _amount;
         uint256 userBalance = IERC20(erc20).balanceOf(msg.sender);
         uint256 stock = IERC1155(_planet).balanceOf(address(this), erc1155Id);
 
-        require(planetPrices[_planet] != 0, "Planet is unavailable");
+        require(planetPrices[_planet] > 0, "Planet is unavailable");
         require(userBalance >= totalPrice, "Not enough funds");
         require(stock >= _amount, "Not enough fractions available");
 
         // check if user purchases below their purchase limit - disabled on maxAmount = 0
         if (useMaxAmount) {
             require(
-                (amounts[msg.sender] + _amount) <= maxAmount,
+                (amounts[msg.sender] + _amount) <=
+                    (maxAmount * whitelist[msg.sender]),
                 "You hit the purchase limit"
             );
         }
 
         // transfers need further testing
-        IERC20(erc20).safeTransfer(msg.sender, wallet, totalPrice);
+        IERC20(erc20).safeTransferFrom(msg.sender, wallet, totalPrice);
         IERC1155(_planet).safeTransferFrom(
             address(this),
             vault,
             erc1155Id,
-            _amount
+            _amount,
+            ""
         );
     }
 
     // settings
     function setPrice(address _planet, uint256 _price) external onlyOwner {
         planetPrices[_planet] = _price;
+    }
+
+    function setPrices(address[] memory _planets, uint256 _price)
+        external
+        onlyOwner
+    {
+        for (uint256 i = 0; i < _planets.length; i++) {
+            planetPrices[_planets[i]] = _price;
+        }
     }
 
     function setSettings(
@@ -103,33 +120,41 @@ contract SalesContract is Ownable {
     }
 
     // optional - to be used if planet doesn't sell or for migrations
-    function withdraw(address _planet, uint256 _amount) external onlyOwner {
-        // transfers need further testing
+    function withdrawERC1155(
+        address _planet,
+        uint256 _id,
+        uint256 _amount
+    ) external onlyOwner {
         IERC1155(_planet).safeTransferFrom(
             address(this),
             msg.sender,
-            erc1155Id,
-            _amount
+            _id,
+            _amount,
+            ""
         );
     }
 
+    function withdrawERC20(address _token, uint256 _amount) external onlyOwner {
+        IERC20(_token).safeTransferFrom(address(this), msg.sender, _amount);
+    }
+
     // whitelist addresses
-    function _whitelistAddress(address _address, bool status)
+    function _whitelistAddress(address _address, uint256 _rank)
         private
         returns (bool)
     {
         require(_address != address(0x0), "Zero Address: Not Allowed");
-        whitelist[_address] = status;
+        whitelist[_address] = _rank;
         return true;
     }
 
-    function whitelistAddresses(address[] memory _addresses, bool status)
+    function whitelistAddresses(address[] memory _addresses, uint256 _rank)
         external
         onlyOwner
         returns (bool)
     {
         for (uint256 i = 0; i < _addresses.length; i++) {
-            require(_whitelistAddress(_addresses[i], status));
+            require(_whitelistAddress(_addresses[i], _rank));
         }
         return true;
     }

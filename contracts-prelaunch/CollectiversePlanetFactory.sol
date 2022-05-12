@@ -14,6 +14,10 @@ contract CollectiversePlanetFactory is OperatorRole {
 
     event Mint(address planet, uint256 planetId);
 
+    constructor() {
+        __OperatorRole_init();
+    }
+
     /// @notice the function to mint a new vault
     /// @param _name the name of the planet
     /// @param _symbol the ticker of the planet
@@ -47,8 +51,10 @@ contract CollectiversePlanetFactory is OperatorRole {
         return vaultCount - 1;
         */
 
+
         address planet = address(new CollectiversePlanet());
         address planetVault = address(new PlanetVault(planet, msg.sender));
+
 
         CollectiversePlanet(planet).transferOwnership(msg.sender);
         CollectiversePlanet(planet).initialize(
@@ -58,8 +64,8 @@ contract CollectiversePlanetFactory is OperatorRole {
             _amount
         );
 
-        CollectiversePlanet(planet)._mintPlanet(msg.sender, "");
-        CollectiversePlanet(planet)._mintFractions(planetVault);
+        CollectiversePlanet(planet).mintPlanet(planetVault, "");
+        CollectiversePlanet(planet).mintFractions(planetVault);
 
         emit Mint(planet, planetCount);
 

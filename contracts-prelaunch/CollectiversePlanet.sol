@@ -22,7 +22,7 @@ contract CollectiversePlanet is ERC1155Upgradeable, OperatorRole {
     string public symbol;
     string private baseURI;
 
-    mapping(uint256 => address) public idToVault;
+    mapping(address => address) public planetVerseToVault;
     uint256 public count = 0;
     uint256 private _totalSupply;
 
@@ -38,7 +38,7 @@ contract CollectiversePlanet is ERC1155Upgradeable, OperatorRole {
         string memory _name,
         string memory _symbol,
         uint256 _startingSupply
-    ) public initializer {
+    ) public initializer {        
         name = _name;
         symbol = _symbol;
          _totalSupply = _startingSupply;
@@ -48,7 +48,7 @@ contract CollectiversePlanet is ERC1155Upgradeable, OperatorRole {
 
     }
 
-    function _mintPlanet(address _owner, string memory data)
+    function mintPlanet(address _owner, string memory data)
         external
         onlyOperator
     {
@@ -57,15 +57,21 @@ contract CollectiversePlanet is ERC1155Upgradeable, OperatorRole {
         emit NewPlanetMinted(0, _owner);
     }
 
-    function _mintFractions(address vault)
+    function mintFractions(address vault)
         external
         onlyOperator
         returns (uint256)
     {
         count++;
-        idToVault[count] = vault;
-        _mint(msg.sender, count, _totalSupply, "0");
+        planetVerseToVault[address(this)] = vault;
+        _mint(msg.sender, 1, _totalSupply, "0");
         return count;
+    }
+
+    function mintMoreFractions(uint256 _amount) external onlyOperator
+    {   
+        uint256 balance = _totalSupply;
+        _mint(msg.sender, count, _amount, "0");
     }
 
     function updateBaseUri(string calldata base) external onlyOperator {

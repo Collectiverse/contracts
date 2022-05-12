@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "hardhat test",
     "compile": "hardhat compile"
   },
   "author": "",
@@ -14,11 +14,12 @@
     "@nomiclabs/hardhat-etherscan": "^3.0.3",
     "@nomiclabs/hardhat-waffle": "^2.0.3",
     "@openzeppelin/hardhat-upgrades": "^1.17.0",
-    "hardhat-gas-reporter": "^1.0.8",
-    "solidity-coverage": "^0.7.20",
+    "chai": "^4.3.6",
     "dotenv": "^16.0.0",
     "ethers": "^5.6.4",
-    "hardhat": "^2.9.3"
+    "hardhat": "^2.9.3",
+    "hardhat-gas-reporter": "^1.0.8",
+    "solidity-coverage": "^0.7.20"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.5.0",

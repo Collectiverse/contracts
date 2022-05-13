@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./OpenZeppelin/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Interfaces/ISettings.sol";
 
 contract Settings is Ownable, ISettings {
@@ -23,6 +23,9 @@ contract Settings is Ownable, ISettings {
 
     /// @notice 10% fee is max
     uint256 public constant maxGovFee = 100;
+
+    /// @notice Max PlanetVerse Minting Hard Cap
+    uint256 public mintHardCap = 25000;
 
     /// @notice max curator fee
     uint256 public override maxCuratorFee;
@@ -47,6 +50,9 @@ contract Settings is Ownable, ISettings {
 
     /// @notice the address who receives auction fees
     address payable public override feeReceiver;
+
+    
+    event UpdateMintHardCap(uint256 _old, uint256 _new);
 
     event UpdateMaxAuctionLength(uint256 _old, uint256 _new);
 
@@ -141,6 +147,14 @@ contract Settings is Ownable, ISettings {
         emit UpdateMinReserveFactor(minReserveFactor, _factor);
 
         minReserveFactor = _factor;
+    }
+
+    function setMintHardCap(uint256 _new) external onlyOwner {
+        require(_new < mintHardCap, "The new value cannot be lowe than the current Minting Cap");
+
+        emit UpdateMintHardCap(mintHardCap, _new);
+
+        mintHardCap = _new;
     }
 
     function setFeeReceiver(address payable _receiver) external onlyOwner {

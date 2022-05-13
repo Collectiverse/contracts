@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./Interfaces/ICollectiverseSettings.sol";
 
 interface IWETH {
     function deposit() external payable;
@@ -25,10 +26,6 @@ interface IWETH {
     ) external returns (bool);
 
     function balanceOf(address) external view returns (uint256);
-}
-
-interface ISettings {
-    function feeReceiver() external view returns (address);
 }
 
 interface ICollectiversePlanet is IERC1155 {
@@ -116,9 +113,10 @@ contract PlanetVault is ERC721Holder, ERC1155Holder {
 
     constructor(
         address _planet,
-        address _curator
+        address _curator,
+        address _settings
     ) {
-        settings = msg.sender;
+        settings = _settings;
         planet = _planet;
         curator = _curator;
     }
@@ -283,8 +281,8 @@ contract PlanetVault is ERC721Holder, ERC1155Holder {
         ICollectiversePlanet(planet).safeTransferFrom(address(this), winning, PLANET_ID, 1, "0x0");
         auctionState = State.ended;
 
-        if (ISettings(settings).feeReceiver() != address(0)) {
-            _sendETHOrWETH(ISettings(settings).feeReceiver(), livePrice / 40);
+        if (ICollectiverseSettings(settings).feeReceiver() != address(0)) {
+            _sendETHOrWETH(ICollectiverseSettings(settings).feeReceiver(), livePrice / 40);
         }
 
         emit Won(winning, livePrice);

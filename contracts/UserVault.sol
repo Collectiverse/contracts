@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -15,7 +15,7 @@ interface ICollectiverseSettings {
 
 
 
-contract MultiSigWallet is ERC1155Holder {
+contract UserVault is ERC1155Holder {
     event Deposit(address indexed sender, uint amount, uint balance);
     event SubmitTransaction(
         address indexed owner,
@@ -36,10 +36,10 @@ contract MultiSigWallet is ERC1155Holder {
     address public collectiverseSettingsAddress;
     address public owner;
     mapping(address => bool) public isOwner;
-    uint public numConfirmationsRequired;
+    uint public numConfirmationsRequired = 1;
 
     struct Transaction {
-        bool typeTransaction; // Transaction will be False if it is an internal trnasaction that requires sigs like a Shange in ownership. It will be True if it is an external transaction
+        bool typeTransaction; // Transaction will be False if it is an internal trnasaction that requires signs like a Shange in ownership. It will be True if it is an external transaction
         address to;
         uint value;
         bytes data;
@@ -152,13 +152,11 @@ contract MultiSigWallet is ERC1155Holder {
             owner = transaction.to; // If typeTransaction is false it means it was sent from the renounceOwnership function.
         } 
         else {
-            transaction.executed = true;
-
             (bool success, ) = transaction.to.call{value: transaction.value}(
                 transaction.data
             );
             require(success, "tx failed");
-
+            transaction.executed = true;
             emit ExecuteTransaction(msg.sender, _txIndex);
             }
         
@@ -214,9 +212,9 @@ contract MultiSigWallet is ERC1155Holder {
         address _token,
         address _to,
         uint256 _amount
-    ) external onlyOwner {
+    ) external onlyAdmin {
         IERC20(_token).transfer(_to, _amount);
-    }
+    } //This function is there incase someone sends somethin wrong we'll be able to 
 
     function getstakeForApyAddress() private view  returns (address)  {
         return ICollectiverseSettings(collectiverseSettingsAddress).stakingForApyAddress();
@@ -232,40 +230,7 @@ contract MultiSigWallet is ERC1155Holder {
     function getAdminAddress() private view returns (address)  {
         return ICollectiverseSettings(collectiverseSettingsAddress).adminAddress();
     }
-    function stakeForTerraform() public onlyOwner {
-        //Populate data bellow with info from the terraform contract
-        uint txIndex = transactions.length;
-        address terraformAddress = getstakeForTerraformAddress();
-        transactions.push(
-            Transaction({
-                typeTransaction: true,
-                to: terraformAddress,
-                value: 0, // temporary placeholders...
-                data: "_data",// temporary placeholders...
-                executed: false,
-                numConfirmations: 0
-            })
-        );
-        emit SubmitTransaction(msg.sender, txIndex, terraformAddress, 0, "_data");// temporary placeholders...
-        emit StakeForTerraformCreated(txIndex);
-    }
-    function stakeForApy() public onlyOwner {
-        //Populate data bellow with info from the APY contract
-        address apyAddress = getstakeForApyAddress();
-        uint txIndex = transactions.length;
-        transactions.push(
-            Transaction({
-                typeTransaction: true,
-                to: apyAddress,
-                value: 0,// temporary placeholders...
-                data: "_data",// temporary placeholders...
-                executed: false,
-                numConfirmations: 0
-            })
-        );
-        emit SubmitTransaction(msg.sender, txIndex, apyAddress, 0, "_data");// temporary placeholders...
-        emit StakeForApyCreated(txIndex);
-    }
+    
     function renounceOwner(address _newOwner) public onlyOwner {
         uint txIndex = transactions.length;
         transactions.push(
@@ -280,7 +245,6 @@ contract MultiSigWallet is ERC1155Holder {
     );
     emit SubmitTransaction(msg.sender, txIndex, 0x0000000000000000000000000000000000000000, 0, "_data");
     emit RenounceOwnerCreated(txIndex);
-    
     }
 
 

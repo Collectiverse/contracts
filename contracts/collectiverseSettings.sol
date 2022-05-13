@@ -1,21 +1,32 @@
-pragma solidity ^0.8.10;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Address.sol";
 
-contract collectiverseSettings {
+contract CollectiverseSettings {
 
     address public stakingForApyAddress;
     address public stakingForTerraformAddress;
     address public votingAddress;
     address public adminAddress;
     address public owner;
+
+    /// @notice the address who receives auction fees
+    address payable public feeReceiverAddress;
+    
+    /// @notice Max PlanetVerse Minting Hard Cap
+    uint256 public mintHardCap = 25000;
+
     mapping(address => bool) public isOwner;
     modifier onlyOwner() {
         require(isOwner[msg.sender], "not owner");
         _;
     }
+
+    event UpdateMintHardCap(uint256 _old, uint256 _new);
+
     constructor(address _owner, address _stakingForApyAddress, address _stakingForTerraformAddress, address _votingAddress, address _adminAddress) {
 
-        require(
+        /* require(
             Address.isContract(_stakingForApyAddress) ||
                 _stakingForApyAddress == address(0),
             "ou can only set 0x0 or a contract address as a new implementation"
@@ -29,7 +40,8 @@ contract collectiverseSettings {
             Address.isContract(_votingAddress) ||
                 _votingAddress == address(0),
             "ou can only set 0x0 or a contract address as a new implementation"
-        );
+        ); */
+        feeReceiverAddress = payable(msg.sender);
         stakingForApyAddress = _stakingForApyAddress;
         stakingForTerraformAddress = _stakingForTerraformAddress;
         votingAddress = _votingAddress;
@@ -64,6 +76,22 @@ contract collectiverseSettings {
     function changeAdminAddress(address _newAddress) public onlyOwner {
         
         adminAddress = _newAddress;
+    }
+
+    function setMintHardCap(uint256 _new) external onlyOwner {
+        require(_new < mintHardCap, "The new value cannot be lowe than the current Minting Cap");
+
+        emit UpdateMintHardCap(mintHardCap, _new);
+
+        mintHardCap = _new;
+    }
+
+    function getMintingHardCap() external view returns (uint256) {
+        return mintHardCap;
+    }
+
+    function feeReceiver() external view returns (address) {
+        return feeReceiverAddress;
     }
 
 }

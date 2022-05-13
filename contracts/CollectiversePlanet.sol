@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import "./OperatorRole.sol";
+import "./Interfaces/ICollectiverseSettings.sol";
 
 interface IVault {
     function onTransfer(
@@ -15,15 +16,18 @@ interface IVault {
     ) external;
 }
 
+
+
 contract CollectiversePlanet is ERC1155Upgradeable, OperatorRole {
     using StringsUpgradeable for uint256;
 
     string public name;
     string public symbol;
     string private baseURI;
+    address private settings;
 
     mapping(address => address) public planetVerseToVault;
-    uint256 public count = 0;
+    uint256 public count;
     uint256 private _totalSupply;
 
 
@@ -37,29 +41,33 @@ contract CollectiversePlanet is ERC1155Upgradeable, OperatorRole {
         string memory _metaDataUri,
         string memory _name,
         string memory _symbol,
-        uint256 _startingSupply
+        uint256 _startingSupply,
+        address _settings
     ) public initializer {        
         name = _name;
         symbol = _symbol;
          _totalSupply = _startingSupply;
+
+         settings = _settings;
+         count = 0;
 
         __OperatorRole_init();
         __ERC1155_init(_metaDataUri);
 
     }
 
-    function mintPlanet(address _owner, string memory data)
+    function mintPlanet(address _owner, bytes memory data)
         external
-        onlyOperator
+        onlyOwner
     {
         
-        _mint(_owner, 0, 1, "0");
+        _mint(_owner, 0, 1, data);
         emit NewPlanetMinted(0, _owner);
     }
 
     function mintFractions(address vault)
         external
-        onlyOperator
+        onlyOwner
         returns (uint256)
     {
         count++;
@@ -68,10 +76,17 @@ contract CollectiversePlanet is ERC1155Upgradeable, OperatorRole {
         return count;
     }
 
-    function mintMoreFractions(uint256 _amount) external onlyOperator
+    function mintMoreFractions(uint256 _amount) external onlyOwner
     {   
         uint256 balance = _totalSupply;
-        _mint(msg.sender, count, _amount, "0");
+        balance += _amount;
+        _totalSupply = balance;
+        
+        uint256 hardCap = ICollectiverseSettings(settings).getMintingHardCap();
+
+        require(_totalSupply <= hardCap, "Cannot mint avove the hardcap");
+
+        _mint(msg.sender, 1, _amount, "0");
     }
 
     function updateBaseUri(string calldata base) external onlyOperator {
@@ -115,6 +130,8 @@ contract CollectiversePlanet is ERC1155Upgradeable, OperatorRole {
         require(ids.length == 1, "too long");
         super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
 
-        IVault(idToVault[ids[0]]).onTransfer(from, to, amounts[0]);
+        if (ids[0] == 1) {
+            IVault(planetVerseToVault[address(this)]).onTransfer(from, to, amounts[0]);
+        }
     }
 }

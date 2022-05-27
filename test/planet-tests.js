@@ -36,12 +36,17 @@ describe("Planet Vault", function () {
     });
 
     it("Can Create a Planet Vault", async function() {
+        const Planet = await ethers.getContractFactory('CollectiversePlanet');
+        const planet = await Planet.deploy();
+
+        await planet.deployed();
+
         const PlanetVaultFactory = await ethers.getContractFactory('CollectiversePlanetFactory');
-        const vaultFactory = await PlanetVaultFactory.deploy(settings.address, owner.address); 
+        const vaultFactory = await PlanetVaultFactory.deploy(planet.address, settings.address, owner.address); 
         await vaultFactory.deployed();
 
         
 
-        expect(vaultFactory.address);
+        expect(planet.address);
     });
 });

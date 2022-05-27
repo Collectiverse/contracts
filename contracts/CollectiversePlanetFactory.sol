@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./PlanetVault.sol";
 import "./CollectiversePlanet.sol";
+import "./mock/Ship.sol";
 
 contract CollectiversePlanetFactory is Ownable {
     string public version = "2.0";
@@ -18,9 +19,9 @@ contract CollectiversePlanetFactory is Ownable {
 
     event Mint(address planet, uint256 planetId);
 
-    constructor(address _settings, address upgrader) {
+    constructor(address _blueprint, address _settings, address upgrader) {
         settings = _settings;
-        UpgradeableBeacon _planetBeacon = new UpgradeableBeacon(address(new CollectiversePlanet()));
+        UpgradeableBeacon _planetBeacon = new UpgradeableBeacon(_blueprint);
         _planetBeacon.transferOwnership(upgrader);
         planetBeacon = address(_planetBeacon);
     }

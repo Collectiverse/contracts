@@ -17,6 +17,7 @@ contract CollectiverseRewards is Ownable {
     bool public hasUsedOneTimeWithdraw;
     uint public maxTries;
     uint public currentTry;
+    uint public oneTimeWithdrawBalance;
     // modifier isWhitelisted(address checkAddress) {
     //     require(whitelistedForWithdraw[checkAddress] == true, "Address is not whitelisted");
     //     _;
@@ -34,6 +35,7 @@ contract CollectiverseRewards is Ownable {
         hasUsedOneTimeWithdraw = false;
         maxTries = _maxTries;
         currentTry = 0;
+        oneTimeWithdrawBalance = 150000;
     }
 
     function deposit(uint _amount, address _planetAddress) public {
@@ -53,11 +55,11 @@ contract CollectiverseRewards is Ownable {
         require(hasUsedOneTimeWithdraw == false, "You have already used the 1 time withdraw");
         require(whitelistedForWithdraw[msg.sender] == true || owner() == _msgSender(), "Caller is not owner neither a whitelisted contract");
         require(balanceToWithdraw >= _amount, "Not enough balance");
-
+        require(_amount > oneTimeWithdrawBalance, "You have exceeded the max amount withdrawable");
         usdcToken.transfer(_outAddress, _amount);
         hasUsedOneTimeWithdraw = true;
         currentTry = currentTry + 1;
-        //Yet to add what planet we took it from.
+        oneTimeWithdrawBalance = oneTimeWithdrawBalance - _amount;
     }
     function editMaxTries(uint _newMax) onlyOwner public {
         maxTries = _newMax;

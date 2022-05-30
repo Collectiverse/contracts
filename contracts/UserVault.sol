@@ -1,21 +1,22 @@
-// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import "https://github.com/0xcert/ethereum-erc721/src/contracts/tokens/nf-token-metadata.sol";
 
 interface ICollectiverseSettings {
     function stakingForApyAddress() external view returns (address);
     function stakingForTerraformAddress() external view returns (address);
     function votingAddress() external view returns (address);
     function adminAddress() external view returns (address);
+    function whitelistedForUserVault(address) external view returns (bool);
 }
 
 
 
-contract UserVault is ERC1155Holder {
+contract UserVault is ERC1155Holder, NFTokenMetadata, Ownable {
     event Deposit(address indexed sender, uint amount, uint balance);
     event SubmitTransaction(
         address indexed owner,
@@ -71,6 +72,7 @@ contract UserVault is ERC1155Holder {
         _;
     }
 
+    
     modifier notExecuted(uint _txIndex) {
         require(!transactions[_txIndex].executed, "tx already executed");
         _;
@@ -84,14 +86,18 @@ contract UserVault is ERC1155Holder {
     constructor(address _owner, address _collectiverseSettings) {
         owner = _owner;
         isOwner[_owner] = true;
-        // Have to add all the different functions here. will give error untill we know all the possible functions
         collectiverseSettingsAddress = _collectiverseSettings;
+        nftName = "NONE";
+        nftSymbol = "NONE";
     }
 
     receive() external payable {
         emit Deposit(msg.sender, msg.value, address(this).balance);
     }
-    
+    function mint(address _to, uint256 _tokenId, string calldata _uri) external onlyOwner {
+        super._mint(_to, _tokenId);
+        super._setTokenUri(_tokenId, _uri);
+    }
     function onERC1155Received(address, address from, uint256 id, uint256 amount, bytes memory) public virtual override returns (bytes4) {
         emit DepositERC1155(msg.sender, id, amount, from);
         return this.onERC1155Received.selector;
@@ -152,6 +158,8 @@ contract UserVault is ERC1155Holder {
             owner = transaction.to; // If typeTransaction is false it means it was sent from the renounceOwnership function.
         } 
         else {
+            // Check if the address is allowed to be called
+            require(ICollectiverseSettings(collectiverseSettingsAddress).whitelistedForUserVault(transaction.to), "Not whitelisted");
             (bool success, ) = transaction.to.call{value: transaction.value}(
                 transaction.data
             );

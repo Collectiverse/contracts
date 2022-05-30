@@ -16,7 +16,8 @@ contract CollectiverseRewards is Ownable {
     uint public operationsMarketingPercentage = 20;
     address public operationsMarketingWallet;
     uint public totalBalance;
-
+    event Deposit(uint amount);
+    event Withdraw(uint amount);
     constructor(address _usdcToken, address _teamWallet, address _operationsMarketingWallet) Ownable() {
         usdcToken = USDCToken(_usdcToken);
         teamWallet = _teamWallet;
@@ -25,6 +26,7 @@ contract CollectiverseRewards is Ownable {
 
     function deposit(uint _amount) public {
         totalBalance = totalBalance + _amount;
+        emit Deposit(_amount);
     }
 
     function withdraw(uint _amount) public payable {
@@ -32,5 +34,6 @@ contract CollectiverseRewards is Ownable {
         uint amountTeam = _amount / 100 * teamPercentage;
         usdcToken.transfer(teamWallet, amountTeam);
         usdcToken.transfer(operationsMarketingWallet, _amount - amountTeam);
+        emit Withdraw(_amount);
     }
 }

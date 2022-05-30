@@ -12,6 +12,7 @@ interface ICollectiverseSettings {
     function votingAddress() external view returns (address);
     function adminAddress() external view returns (address);
     function whitelistedForUserVault(address) external view returns (bool);
+    function transferEnabled() external view returns (bool)
 }
 
 
@@ -257,6 +258,7 @@ contract UserVault is ERC1155Holder, NFTokenMetadata, Ownable {
 
 
     function withdrawERC1155(address _token, uint256 _tokenId, uint256 _amount) external onlyOwner {
+        require(ICollectiverseSettings(collectiverseSettingsAddress).transferEnabled(), "Transfers not enabled");
         IERC1155(_token).safeTransferFrom(address(this), msg.sender, _tokenId, _amount, "0");
         emit WithdrawERC1155(_token, _tokenId, _amount, msg.sender);
     }

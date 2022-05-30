@@ -9,19 +9,22 @@ contract CollectiverseSettings {
     address public votingAddress;
     address public adminAddress;
     address public owner;
-
+    bool public transferEnabled;
     /// @notice the address who receives auction fees
     address payable public feeReceiverAddress;
     
     /// @notice Max PlanetVerse Minting Hard Cap
     uint256 public mintHardCap = 25000;
-
+    mapping(address => bool) public whitelistedForUserVault;
     mapping(address => bool) public isOwner;
     modifier onlyOwner() {
         require(isOwner[msg.sender], "not owner");
         _;
     }
-
+    modifier onlyWhitelistedForUserVault() {
+        require(whitelistedForUserVault[msg.sender], "not owner");
+        _;
+    }
     event UpdateMintHardCap(uint256 _old, uint256 _new);
 
     constructor(address _owner, address _stakingForApyAddress, address _stakingForTerraformAddress, address _votingAddress, address _adminAddress) {
@@ -48,6 +51,7 @@ contract CollectiverseSettings {
         adminAddress = _adminAddress;
         owner = _owner;
         isOwner[_owner] = true;
+        transferEnabled = false;
     }
     function changeStakingForApyAddress(address _newAddress) public onlyOwner {
         require(
@@ -92,6 +96,12 @@ contract CollectiverseSettings {
 
     function feeReceiver() external view returns (address) {
         return feeReceiverAddress;
+    }
+    function enableTransfers() external onlyOwner {
+        transferEnabled = true;
+    }
+    function addwhitelistedForUserVault(address _newAddress) public onlyOwner {
+        whitelistedForUserVault[_newAddress] = true;
     }
 
 }

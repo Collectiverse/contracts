@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
-contract CollectiverseRewards is Ownable {
+contract CollectiverseTreasury is Ownable {
     USDCToken public usdcToken;
 
     uint public teamPercentage = 80;

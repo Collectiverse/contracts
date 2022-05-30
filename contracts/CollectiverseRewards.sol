@@ -15,6 +15,8 @@ contract CollectiverseRewards is Ownable {
     mapping (uint => address) whitelistedForWithdrawIdentifier;
     uint public balanceToWithdraw;
     bool public hasUsedOneTimeWithdraw;
+    uint public maxTries;
+    uint public currentTry;
     // modifier isWhitelisted(address checkAddress) {
     //     require(whitelistedForWithdraw[checkAddress] == true, "Address is not whitelisted");
     //     _;
@@ -27,9 +29,11 @@ contract CollectiverseRewards is Ownable {
         require(whitelistedForWithdraw[_newAddress] == true, "Not whitelisted for withdraws");
         whitelistedForWithdraw[_newAddress] = false;
     }
-    constructor(address _usdcToken) Ownable() {
+    constructor(address _usdcToken, uint _maxTries) Ownable() {
         usdcToken = USDCToken(_usdcToken);
         hasUsedOneTimeWithdraw = false;
+        maxTries = _maxTries;
+        currentTry = 0;
     }
 
     function deposit(uint _amount, address _planetAddress) public {
@@ -45,11 +49,18 @@ contract CollectiverseRewards is Ownable {
         balanceToWithdraw - _amount;
     }
     function oneTimeWithdraw(uint _amount, address _outAddress) public payable {
+        require(currentTry <= maxTries, "You have exceeded the maximum amount of tries");
         require(hasUsedOneTimeWithdraw == false, "You have already used the 1 time withdraw");
         require(whitelistedForWithdraw[msg.sender] == true || owner() == _msgSender(), "Caller is not owner neither a whitelisted contract");
         require(balanceToWithdraw >= _amount, "Not enough balance");
+
         usdcToken.transfer(_outAddress, _amount);
         hasUsedOneTimeWithdraw = true;
+        currentTry = currentTry + 1;
         //Yet to add what planet we took it from.
     }
+    function editMaxTries(uint _newMax) onlyOwner public {
+        maxTries = _newMax;
+    }
+
 }

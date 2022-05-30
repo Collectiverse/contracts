@@ -20,10 +20,14 @@ contract SalesContract is Ownable, ERC1155Holder {
 
     // wallet where the profits go to
     address public wallet;
+    address public royaltyWallet;
     // vault information
     address public vaults;
     // whitelist
     mapping(address => uint256) public whitelist;
+
+    // royalty information (in basis points)
+    uint256 public royalty;
 
     bool public useWhitelist;
     bool public useMaxAmount;
@@ -44,11 +48,15 @@ contract SalesContract is Ownable, ERC1155Holder {
         address _vaults,
         uint256 _erc1155Id,
         address _erc20
+        address _royaltyWallet,
+        address _royalty, // testing with 3300 = 33%
     ) {
         wallet = _wallet;
         vaults = _vaults;
         erc1155Id = _erc1155Id; // 1 for fractions in our case
         erc20 = _erc20;
+        royaltyWallet = _royaltyWallet;
+        royalty = _royalty;
     }
 
     // main purchase function - potential for additional logic like whitelist
@@ -84,8 +92,13 @@ contract SalesContract is Ownable, ERC1155Holder {
             );
         }
 
+        // price is in basis points
+        uint256 normalPrice = totalPrice * 10000 / (10000 - royalty);
+        uint256 royaltyPrice = totalPrice - normalPrice;
+
         // transfers need further testing
-        IERC20(erc20).safeTransferFrom(msg.sender, wallet, totalPrice);
+        IERC20(erc20).safeTransferFrom(msg.sender, wallet, normalPrice);
+        IERC20(erc20).safeTransferFrom(msg.sender, royaltyWallet, royaltyPrice);
         IERC1155(_planet).safeTransferFrom(
             address(this),
             vault,

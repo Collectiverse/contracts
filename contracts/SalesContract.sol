@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./CollectiverseRewards.sol";
 
 interface VaultInfo {
     function vaults(uint256) external view returns (address);
@@ -31,6 +32,7 @@ contract SalesContract is Ownable, ERC1155Holder {
 
     bool public useWhitelist;
     bool public useMaxAmount;
+    bool public useDepositCall;
 
     // purchase limits
     mapping(address => uint256) public amounts;
@@ -48,15 +50,11 @@ contract SalesContract is Ownable, ERC1155Holder {
         address _vaults,
         uint256 _erc1155Id,
         address _erc20
-        address _royaltyWallet,
-        address _royalty, // testing with 3300 = 33%
     ) {
         wallet = _wallet;
         vaults = _vaults;
         erc1155Id = _erc1155Id; // 1 for fractions in our case
         erc20 = _erc20;
-        royaltyWallet = _royaltyWallet;
-        royalty = _royalty;
     }
 
     // main purchase function - potential for additional logic like whitelist
@@ -92,8 +90,13 @@ contract SalesContract is Ownable, ERC1155Holder {
             );
         }
 
+        // calls rewards contract to signal purchase
+        if (useDepositCall) {
+            CollectiverseRewards(wallet).deposit(totalPrice, wallet);
+        }
+
         // price is in basis points
-        uint256 normalPrice = totalPrice * 10000 / (10000 - royalty);
+        uint256 normalPrice = (totalPrice * 10000) / (10000 - royalty);
         uint256 royaltyPrice = totalPrice - normalPrice;
 
         // transfers need further testing
@@ -120,6 +123,16 @@ contract SalesContract is Ownable, ERC1155Holder {
         for (uint256 i = 0; i < _planets.length; i++) {
             planetPrices[_planets[i]] = _price;
         }
+    }
+
+    function setRoyalty(
+        address _royaltyWallet,
+        uint256 _royalty,
+        bool _useDepositCall
+    ) external onlyOwner {
+        royaltyWallet = _royaltyWallet;
+        royalty = _royalty;
+        useDepositCall = _useDepositCall;
     }
 
     function setSettings(

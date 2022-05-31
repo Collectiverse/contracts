@@ -15,8 +15,6 @@ interface ICollectiverseSettings {
     function transferEnabled() external view returns (bool)
 }
 
-
-
 contract UserVault is ERC1155Holder, NFTokenMetadata, Ownable {
     event Deposit(address indexed sender, uint amount, uint balance);
     event SubmitTransaction(

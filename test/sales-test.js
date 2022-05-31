@@ -3,6 +3,7 @@ const { ethers } = require("hardhat");
 
 const collectiverseWallet = "0x1000000000000000000000000000000000000000";
 const vaultAddress = "0x2000000000000000000000000000000000000000";
+const royaltyWallet = "0x3000000000000000000000000000000000000000";
 
 async function loadContracts() {
   // user1: state, user2: operator, user3: user
@@ -56,6 +57,14 @@ describe("Sales Contract", function () {
     await sales.setSettings(true, true, 20)
     expect(await sales.useWhitelist()).to.equal(true);
     expect(await sales.useMaxAmount()).to.equal(true);
+  });
+
+  it("Interacting with royalty", async function () {
+    let { sales } = await loadContracts();
+
+    await sales.setRoyalty(royaltyWallet, 3300, false)
+    expect(await sales.royaltyWallet()).to.equal(royaltyWallet);
+    expect(await sales.royalty()).to.equal(3300);
   });
 
   it("Whitelisting user", async function () {
@@ -186,5 +195,38 @@ describe("Sales Contract", function () {
       await sales.purchase(collectiverseWallet, amount);
       expect(false)
     } catch (e) { }
+  });
+
+  it("Purchase with royalty", async function () {
+    let { signer, sales, planet, usdc, vaults } = await loadContracts();
+
+    // prepare sales contract
+    await sales.setSettings(true, true, 20)
+    await planet.safeTransferFrom(signer.address, sales.address, 1, 10000, 0);
+    await sales.setPrices([planet.address], 15 * 1000000);
+    await sales.whitelistAddresses([signer.address], 1);
+
+    // royalty
+    await sales.setRoyalty(royaltyWallet, 3300, false)
+
+    // purchase
+    amount = 20
+    start = await usdc.balanceOf(signer.address);
+    await vaults.createVault(vaultAddress);
+    await usdc.approve(sales.address, amount * 15 * 1000000);
+    await sales.purchase(planet.address, amount);
+
+    let totalPrice = amount * 15 * 1000000;
+    let royaltyPrice = totalPrice * 3300 / 10000;
+    let normalPrice = totalPrice - royaltyPrice;
+
+    // check results
+    expect(await usdc.balanceOf(signer.address)).to.equal(start - (totalPrice));
+    expect(await usdc.balanceOf(collectiverseWallet)).to.equal(normalPrice);
+    expect(await usdc.balanceOf(royaltyWallet)).to.equal(royaltyPrice);
+    expect(await planet.balanceOf(vaultAddress, 1)).to.equal(amount);
+    expect(await planet.balanceOf(sales.address, 1)).to.equal(10000 - amount);
+
+    expect(true)
   });
 })

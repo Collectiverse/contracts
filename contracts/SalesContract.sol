@@ -91,17 +91,24 @@ contract SalesContract is Ownable, ERC1155Holder {
         }
 
         // price is in basis points
-        uint256 normalPrice = (totalPrice * 10000) / (10000 - royalty);
-        uint256 royaltyPrice = totalPrice - normalPrice;
+        uint256 royaltyPrice = (royalty * totalPrice) / 10000;
+        uint256 normalPrice = totalPrice - royaltyPrice;
 
         // calls rewards contract to signal purchase
         if (useDepositCall) {
             CollectiverseRewards(wallet).deposit(normalPrice, _planet);
         }
 
-        // transfers need further testing
         IERC20(erc20).safeTransferFrom(msg.sender, wallet, normalPrice);
-        IERC20(erc20).safeTransferFrom(msg.sender, royaltyWallet, royaltyPrice);
+        // only send royalty if necessary
+        if (royaltyPrice != 0) {
+            IERC20(erc20).safeTransferFrom(
+                msg.sender,
+                royaltyWallet,
+                royaltyPrice
+            );
+        }
+
         IERC1155(_planet).safeTransferFrom(
             address(this),
             vault,

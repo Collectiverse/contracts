@@ -18,7 +18,7 @@ contract CollectiverseRewards is Ownable {
     uint public maxTries;
     uint public currentTry;
     uint public oneTimeWithdrawBalance;
-    uint public numConfirmationsRequired = 2;
+    uint public numConfirmationsRequired = 1;
     struct Withdraw {
         address planetAddress;
         address outAddress;

@@ -1,29 +1,50 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// When running the script with `npx hardhat run <script>` you'll find the Hardhat
-// Runtime Environment's members available in the global scope.
-const hre = require("hardhat");
+const { ethers, upgrades } = require("hardhat");
 
-async function main() {
-  // Hardhat always runs the compile task when running scripts with its command
-  // line interface.
-  //
-  // If this script is run directly using `node` you may want to call compile
-  // manually to make sure everything is compiled
-  // await hre.run('compile');
-
-  // We get the contract to deploy
-  const Greeter = await hre.ethers.getContractFactory("Greeter");
-  const greeter = await Greeter.deploy("Hello, Hardhat!");
-
-  await greeter.deployed();
-
-  console.log("Greeter deployed to:", greeter.address);
+const static = {
+  "zero": "0x0000000000000000000000000000000000000000",
+  "usdc": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
+async function main() {
+  const deployer = await ethers.getSigner();
+
+  const Settings = await ethers.getContractFactory("CollectiverseSettings");
+  const settings = await Settings.deploy(deployer.address, static.zero, static.zero, static.zero, deployer.address);
+
+  const Rewards = await ethers.getContractFactory("CollectiverseRewards");
+  const rewards = await Rewards.deploy(static.usdc, 10, deployer.address);
+
+  const Treasury = await ethers.getContractFactory("CollectiverseTreasury");
+  const treasury = await Treasury.deploy(static.usdc, static.zero, static.zero);
+
+  const Planet = await ethers.getContractFactory("CollectiversePlanet");
+  const planet = await Planet.deploy();
+
+  // Running out of gas
+  const PlanetFactory = await ethers.getContractFactory("CollectiversePlanetFactory");
+  // const planetFactory = await PlanetFactory.deploy(planet.address, settings.address, deployer.address);
+
+  const UserVaultFactory = await ethers.getContractFactory("UserVaultFactory");
+  const userVaultFactory = await UserVaultFactory.deploy(settings.address);
+
+  // Testing UserVault
+  await userVaultFactory.addOperator(deployer.address);
+  await userVaultFactory.mint();
+
+  const SalesContract = await ethers.getContractFactory("SalesContract");
+  const salesContract = await SalesContract.deploy(deployer.address, userVaultFactory.address, 1, static.usdc);
+
+
+  console.log("DEPLOYMENT SUCCESSFUL");
+  console.log("Settings:", settings.address);
+  console.log("Rewards :", rewards.address);
+  console.log("Treasury:", treasury.address);
+  // console.log("PlanetFactory:", planetFactory.address);
+  console.log("UserVaultFactory:", userVaultFactory.address);
+  console.log("UserVault       :", await userVaultFactory.vaults(1));
+  console.log("SalesContract:", salesContract.address);
+}
+
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;

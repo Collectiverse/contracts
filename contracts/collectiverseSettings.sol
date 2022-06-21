@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Address.sol";
 
 contract CollectiverseSettings {
-
     address public stakingForApyAddress;
     address public stakingForTerraformAddress;
     address public votingAddress;
@@ -12,7 +11,8 @@ contract CollectiverseSettings {
     bool public transferEnabled;
     /// @notice the address who receives auction fees
     address payable public feeReceiverAddress;
-    
+    string public vaultUrlPrefix;
+
     /// @notice Max PlanetVerse Minting Hard Cap
     uint256 public mintHardCap = 25000;
     mapping(address => bool) public whitelistedForUserVault;
@@ -27,8 +27,13 @@ contract CollectiverseSettings {
     }
     event UpdateMintHardCap(uint256 _old, uint256 _new);
 
-    constructor(address _owner, address _stakingForApyAddress, address _stakingForTerraformAddress, address _votingAddress, address _adminAddress) {
-
+    constructor(
+        address _owner,
+        address _stakingForApyAddress,
+        address _stakingForTerraformAddress,
+        address _votingAddress,
+        address _adminAddress
+    ) {
         /* require(
             Address.isContract(_stakingForApyAddress) ||
                 _stakingForApyAddress == address(0),
@@ -56,35 +61,40 @@ contract CollectiverseSettings {
 
     function changeStakingForApyAddress(address _newAddress) public onlyOwner {
         require(
-            Address.isContract(_newAddress) ||
-                _newAddress == address(0),
+            Address.isContract(_newAddress) || _newAddress == address(0),
             "You can only set 0x0 or a contract address as a new implementation"
         );
         stakingForApyAddress = _newAddress;
     }
-    function changeStakingForTerraformAddress(address _newAddress) public onlyOwner {
+
+    function changeStakingForTerraformAddress(address _newAddress)
+        public
+        onlyOwner
+    {
         require(
-            Address.isContract(_newAddress) ||
-                _newAddress == address(0),
+            Address.isContract(_newAddress) || _newAddress == address(0),
             "You can only set 0x0 or a contract address as a new implementation"
         );
         stakingForTerraformAddress = _newAddress;
     }
+
     function changeVotingAddress(address _newAddress) public onlyOwner {
         require(
-            Address.isContract(_newAddress) ||
-                _newAddress == address(0),
+            Address.isContract(_newAddress) || _newAddress == address(0),
             "You can only set 0x0 or a contract address as a new implementation"
         );
         votingAddress = _newAddress;
     }
+
     function changeAdminAddress(address _newAddress) public onlyOwner {
-        
         adminAddress = _newAddress;
     }
 
     function setMintHardCap(uint256 _new) external onlyOwner {
-        require(_new < mintHardCap, "The new value cannot be lowe than the current Minting Cap");
+        require(
+            _new < mintHardCap,
+            "The new value cannot be lowe than the current Minting Cap"
+        );
 
         emit UpdateMintHardCap(mintHardCap, _new);
 
@@ -98,10 +108,16 @@ contract CollectiverseSettings {
     function feeReceiver() external view returns (address) {
         return feeReceiverAddress;
     }
+
     function enableTransfers() external onlyOwner {
         transferEnabled = true;
     }
+
     function addwhitelistedForUserVault(address _newAddress) public onlyOwner {
         whitelistedForUserVault[_newAddress] = true;
+    }
+
+    function changeNftUrl(string memory _newUrl) public onlyOwner {
+        vaultUrlPrefix = _newUrl;
     }
 }

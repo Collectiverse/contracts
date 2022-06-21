@@ -18,9 +18,11 @@ contract UserVaultFactory is OperatorRole {
     }
 
     function mint() external onlyOperator returns (uint256) {
-        address userVault = address(new UserVault(msg.sender, collectiverseSettings));
-        emit Mint(userVault, vaultCount);
+        address userVault = address(
+            new UserVault(msg.sender, collectiverseSettings)
+        );
         vaultCount++;
+        emit Mint(userVault, vaultCount);
         vaults[vaultCount] = userVault;
         return vaultCount;
     }

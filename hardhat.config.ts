@@ -10,7 +10,15 @@ const { PRIVATE_KEY, TEST_KEY, FUJI_URL } = process.env;
 import { HardhatUserConfig } from "hardhat/config";
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.4",
+  solidity: {
+    version: "0.8.4",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 1000,
+      },
+    },
+  },
   networks: {
     fuji: {
       url: FUJI_URL || "",
@@ -19,8 +27,8 @@ const config: HardhatUserConfig = {
     hardhat: {
       chainId: 43114,
       gasPrice: 225000000000,
-      throwOnTransactionFailures: false,
-      loggingEnabled: true,
+      throwOnTransactionFailures: true,
+      loggingEnabled: false,
       accounts: [{
         privateKey: TEST_KEY || "",
         balance: "1000000000000000000000",

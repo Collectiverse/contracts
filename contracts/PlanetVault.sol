@@ -5,10 +5,10 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Interfaces/ICollectiverseSettings.sol";
+import "./Interfaces/ICollectiversePlanet.sol";
 
 interface IWETH {
     function deposit() external payable;
@@ -26,16 +26,6 @@ interface IWETH {
     ) external returns (bool);
 
     function balanceOf(address) external view returns (uint256);
-}
-
-interface ICollectiversePlanet is IERC1155 {
-    function burn(
-        address,
-        uint256,
-        uint256
-    ) external;
-
-    function totalSupply(uint256) external view returns (uint256);
 }
 
 contract PlanetVault is ERC721Holder, ERC1155Holder {

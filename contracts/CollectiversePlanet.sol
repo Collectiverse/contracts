@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GOG
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
@@ -26,7 +26,7 @@ contract CollectiversePlanet is ERC1155Upgradeable, OperatorRole {
     string private baseURI;
     address private settings;
 
-    mapping(address => address) public planetVerseToVault;
+    //mapping(address => address) public planetVerseToVault;
     uint256 public count;
     uint256 private _totalSupply;
 
@@ -43,7 +43,11 @@ contract CollectiversePlanet is ERC1155Upgradeable, OperatorRole {
         string memory _symbol,
         uint256 _startingSupply,
         address _settings
-    ) public initializer {        
+    ) public initializer {   
+
+        __OperatorRole_init();
+        __ERC1155_init(_metaDataUri);
+
         name = _name;
         symbol = _symbol;
          _totalSupply = _startingSupply;
@@ -51,14 +55,11 @@ contract CollectiversePlanet is ERC1155Upgradeable, OperatorRole {
          settings = _settings;
          count = 0;
 
-        __OperatorRole_init();
-        __ERC1155_init(_metaDataUri);
-
     }
 
     function mintPlanet(address _owner, bytes memory data)
         external
-        onlyOwner
+        
     {
         
         _mint(_owner, 0, 1, data);
@@ -67,13 +68,10 @@ contract CollectiversePlanet is ERC1155Upgradeable, OperatorRole {
 
     function mintFractions(address vault)
         external
-        onlyOwner
-        returns (uint256)
     {
-        count++;
-        planetVerseToVault[address(this)] = vault;
-        _mint(msg.sender, 1, _totalSupply, "0");
-        return count;
+        //count++;
+        //planetVerseToVault[address(this)] = vault;
+        _mint(vault, 1, _totalSupply, "");
     }
 
     function mintMoreFractions(uint256 _amount) external onlyOwner
@@ -129,9 +127,5 @@ contract CollectiversePlanet is ERC1155Upgradeable, OperatorRole {
     ) internal virtual override {
         require(ids.length == 1, "too long");
         super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
-
-        if (ids[0] == 1) {
-            IVault(planetVerseToVault[address(this)]).onTransfer(from, to, amounts[0]);
-        }
     }
 }

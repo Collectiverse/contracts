@@ -2,30 +2,32 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
-import "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
+//import "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./InitializedProxy.sol";
 import "./PlanetVault.sol";
 import "./CollectiversePlanet.sol";
+import "./Interfaces/ICollectiverseSettings.sol";
+import "hardhat/console.sol";
 
 contract CollectiversePlanetFactory is Ownable {
     string public version = "2.0";
     uint256 public planetCount = 0;
     address public settings;
-    address immutable planetBeacon;
+    //address immutable planetBeacon;
+    address public immutable logic;
 
     mapping(uint256 => address) public planets;
 
     event Mint(address planet, uint256 planetId);
 
     constructor(
-        address _blueprint,
-        address _settings,
-        address upgrader
+        address _settings
     ) {
         settings = _settings;
-        UpgradeableBeacon _planetBeacon = new UpgradeableBeacon(_blueprint);
-        _planetBeacon.transferOwnership(upgrader);
-        planetBeacon = address(_planetBeacon);
+        logic = address(new CollectiversePlanet());
+        //_planetBeacon.transferOwnership(upgrader);
+        //planetBeacon = address(_planetBeacon);
     }
 
     /// @notice the function to mint a new vault
@@ -39,29 +41,32 @@ contract CollectiversePlanetFactory is Ownable {
         string memory _symbol,
         uint256 _amount
     ) external onlyOwner returns (uint256) {
-        BeaconProxy proxy = new BeaconProxy(
-            planetBeacon,
-            abi.encodeWithSelector(
-                CollectiversePlanet.initialize.selector,
+
+        bytes memory _initializationCalldata =
+           abi.encodeWithSignature(
+            "initialize(string,string,string,uint256,address)",
                 _metaDataUri,
                 _name,
                 _symbol,
                 _amount,
                 settings
-            )
+            );
+
+        address planet = address(
+            new InitializedProxy(logic, _initializationCalldata)
         );
 
-        address planetVault = address(
-            new PlanetVault(address(proxy), msg.sender, settings)
-        );
+        ICollectiversePlanet(planet).mintPlanet(msg.sender, "");
 
-        CollectiversePlanet(address(proxy)).mintPlanet(planetVault, "");
-        CollectiversePlanet(address(proxy)).mintFractions(planetVault);
+        PlanetVault vault = new PlanetVault(planet, msg.sender, settings);
+        ICollectiversePlanet(planet).mintFractions(address(vault));
 
-        emit Mint(address(proxy), planetCount);
+        console.log("Planet Address", planet);
+
+        emit Mint(planet, 1);
 
         planetCount++;
-        planets[planetCount] = address(proxy);
+        planets[planetCount] = planet;
 
         return planetCount;
     }

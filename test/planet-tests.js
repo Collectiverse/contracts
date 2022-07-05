@@ -31,22 +31,26 @@ describe("Planet Vault", function () {
 
         await planet.mintPlanet(owner.address, []);
         const balance = await planet.balanceOf(owner.address, 0);
+        //console.log(balance);
 
-        expect(balance).to.equal(1);
+        expect(Number(balance)).to.equal(1);
     });
 
     it("Can Create a Planet Vault", async function() {
-        const Planet = await ethers.getContractFactory('CollectiversePlanet');
-        const planet = await Planet.deploy();
-
-        await planet.deployed();
 
         const PlanetVaultFactory = await ethers.getContractFactory('CollectiversePlanetFactory');
-        const vaultFactory = await PlanetVaultFactory.deploy(planet.address, settings.address, owner.address); 
+        const vaultFactory = await PlanetVaultFactory.deploy(settings.address); 
         await vaultFactory.deployed();
 
+        const tx = await vaultFactory.mint('https://blas', 'Mars', 'mars', '10000');
+        console.log(tx);
+
+        const rc = await tx.wait();
+        const event = rc.events.find(event => event.event === 'Mint');
         
 
-        expect(planet.address);
+        const {planet, planetId} = event.args;
+
+        expect(planet);
     });
 });

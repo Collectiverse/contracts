@@ -7,7 +7,9 @@
     "test": "hardhat test",
     "compile": "hardhat compile",
     "node": "hardhat node",
-    "deploy-local": "hardhat run --network localhost scripts/deploy.js"
+    "deploy-local": "hardhat run --network localhost scripts/deploy.js",
+    "deploy-fuji": "hardhat run --network fuji scripts/deploy.js",
+    "live-fuji": "hardhat run --network fuji scripts/fuji.js"
   },
   "author": "",
   "license": "ISC",

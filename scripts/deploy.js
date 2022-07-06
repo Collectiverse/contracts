@@ -17,12 +17,11 @@ async function main() {
   const Treasury = await ethers.getContractFactory("CollectiverseTreasury");
   const treasury = await Treasury.deploy(static.usdc, static.zero, static.zero);
 
-  const Planet = await ethers.getContractFactory("CollectiversePlanet");
-  const planet = await Planet.deploy();
-
   // Running out of gas
   const PlanetFactory = await ethers.getContractFactory("CollectiversePlanetFactory");
-  // const planetFactory = await PlanetFactory.deploy(planet.address, settings.address, deployer.address);
+  const planetFactory = await PlanetFactory.deploy(settings.address);
+
+  const planet = await planetFactory.mint("https://example.com", "Mars", "MARS", 10000)
 
   const UserVaultFactory = await ethers.getContractFactory("UserVaultFactory");
   const userVaultFactory = await UserVaultFactory.deploy(settings.address);
@@ -39,7 +38,8 @@ async function main() {
   console.log("Settings:", settings.address);
   console.log("Rewards :", rewards.address);
   console.log("Treasury:", treasury.address);
-  // console.log("PlanetFactory:", planetFactory.address);
+  console.log("PlanetFactory:", planetFactory.address);
+  console.log("Planet Mars  :", await planetFactory.planets(1));
   console.log("UserVaultFactory:", userVaultFactory.address);
   console.log("UserVault       :", await userVaultFactory.vaults(1));
   console.log("SalesContract:", salesContract.address);

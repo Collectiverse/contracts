@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "./UserVault.sol";
 import "./OperatorRole.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import "hardhat/console.sol";
 
 contract UserVaultFactory is OperatorRole {
     string public version = "1.0";
@@ -23,6 +24,8 @@ contract UserVaultFactory is OperatorRole {
         );
         vaultCount++;
         emit Mint(userVault, vaultCount);
+        console.log("Vault Address", userVault);
+
         vaults[vaultCount] = userVault;
         return vaultCount;
     }

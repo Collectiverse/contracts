@@ -19,6 +19,7 @@ contract CollectiversePlanetFactory is Ownable {
 
     mapping(uint256 => address) public planets;
 
+    event Vault(address vault);
     event Mint(address planet, uint256 planetId);
 
     constructor(
@@ -60,6 +61,8 @@ contract CollectiversePlanetFactory is Ownable {
 
         PlanetVault vault = new PlanetVault(planet, msg.sender, settings);
         ICollectiversePlanet(planet).mintFractions(address(vault));
+
+        emit Vault(address(vault));
 
         console.log("Planet Address", planet);
 

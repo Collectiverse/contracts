@@ -137,6 +137,7 @@ contract SalesContract is Ownable, ERC1155Holder {
         uint256 _royalty,
         bool _useDepositCall
     ) external onlyOwner {
+        require(_royalty < 10000, "Royalty should be less than 100%");
         royaltyWallet = _royaltyWallet;
         royalty = _royalty;
         useDepositCall = _useDepositCall;
@@ -177,6 +178,7 @@ contract SalesContract is Ownable, ERC1155Holder {
         returns (bool)
     {
         require(_address != address(0x0), "Zero Address: Not Allowed");
+        require(_rank <= 50, "Rank shouldn't be too high");
         whitelist[_address] = _rank;
         return true;
     }

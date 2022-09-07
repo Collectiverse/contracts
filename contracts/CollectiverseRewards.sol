@@ -9,7 +9,7 @@ contract CollectiverseRewards is Ownable {
     using SafeERC20 for IERC20;
 
     IERC20 public usdcToken;
-    mapping(address => uint256) public planetUSDC; //First uint is the planet ID And the second mapping uint 0 = USDC amount and uint 1 =
+    mapping(address => uint256) public planetUSDC;
     mapping(address => bool) public whitelistedForWithdraw;
     mapping(uint256 => mapping(address => bool)) public isConfirmed;
     address public signingAddress;
